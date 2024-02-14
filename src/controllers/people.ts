@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { ConncetionDB } from '../connection'
+import { updateGroupsWhenChangeParentGroup } from "../helpers";
 
 export const createInPeople = async (req: Request, res: Response) => {
   try {
@@ -106,16 +107,33 @@ export const movePeopleToAnotherGroup = async (req: Request, res: Response) => {
     if (!groupID) {
       throw new Error('groupID is mandatory')
     }
-    
+
     const connection = await ConncetionDB()
+
+    const oldParentGroupIDPromise = await new Promise<{ parent_group_id: number }[]>((resolve, reject) => {
+      connection.query(
+        `SELECT parent_group_id FROM people WHERE id=?`,
+        [id],
+        async (err, resp) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(resp)
+          }
+        }
+      )
+    })
+    const oldParentGroupID = oldParentGroupIDPromise[0].parent_group_id
+
     const promiseResponse = await new Promise((resolve, reject) => {
       connection.query(
         `UPDATE people SET parent_group_id=? WHERE id=?`,
         [groupID, id],
-        (err, resp) => {
+        async (err, resp) => {
           if (err) {
             reject(err)
           } else {
+            await updateGroupsWhenChangeParentGroup(connection, oldParentGroupID, groupID)
             if (resp.affectedRows === 0) {
               reject(`Record with id ${id} doesn't exists in people`)
             }

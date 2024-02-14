@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { ConncetionDB } from '../connection'
+import { updateGroupsWhenChangeParentGroup } from "../helpers";
 
 export const createGroup = async (req: Request, res: Response) => {
   try {
@@ -99,19 +100,36 @@ export const moveGroupToAnotherGroup = async (req: Request, res: Response) => {
     if (id == parentGroupID) {
       throw new Error('You cannot move a group into itself')
     }
-    
+
     const connection = await ConncetionDB()
+
+    const oldParentGroupIDPromise = await new Promise<{ parent_group_id: number }[]>((resolve, reject) => {
+      connection.query(
+        `SELECT parent_group_id FROM organization.groups WHERE id=?`,
+        [id],
+        async (err, resp) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(resp)
+          }
+        }
+      )
+    })
+    const oldParentGroupID = oldParentGroupIDPromise[0].parent_group_id
+    
     const promiseResponse = await new Promise((resolve, reject) => {
       connection.query(
         `UPDATE organization.groups SET parent_group_id=? WHERE id=?`,
         [parentGroupID, id],
-        (err, resp) => {
+        async (err, resp) => {
           if (err) {
             reject(err)
           } else {
             if (resp.affectedRows === 0) {
               reject(`Record with id ${id} doesn't exists in groups`)
             }
+            await updateGroupsWhenChangeParentGroup(connection, oldParentGroupID, parentGroupID)
             resolve(`Record with id ${id} from groups moved in group with id ${parentGroupID}`)
           }
         }

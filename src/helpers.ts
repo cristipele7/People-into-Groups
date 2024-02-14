@@ -1,3 +1,4 @@
+import { Connection } from "mysql"
 import { ConncetionDB } from "./connection"
 import { IGroup, IPeople } from "./models"
 
@@ -87,4 +88,25 @@ export const getHierarchy = async (dataHierarchy?: { personID?: number, groupID?
   }
 
   return hierarchicalData
+}
+
+export const updateGroupsWhenChangeParentGroup = async (
+  connection: Connection,
+  olsParentGroupID: number,
+  newParentGroupID: number
+) => {
+  const ids: number[] = [...new Set([olsParentGroupID, newParentGroupID])]
+  return new Promise((resolve, reject) => {
+    connection.query(
+      `UPDATE organization.groups SET date_updated=? WHERE id IN (?)`,
+      [new Date(), ids],
+      async (err) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(`Records with ids ${ids} from groups updated after people or group was added/removed from group`)
+        }
+      }
+    )
+  })
 }
