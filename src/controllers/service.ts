@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { getRedisClient } from "../redisClient";
-import { getHierarchy } from "../helpers";
+import { getHierarchy, getRecursiveGroups } from "../helpers";
 import { ConncetionDB } from "../connection";
 
 export const cacheHierarchy = async (req: Request, res: Response, next: NextFunction) => {
@@ -65,7 +65,7 @@ export const allGroupsAbovePerson = async (req: Request, res: Response) => {
   }
 }
 
-export const allForGroup = async (req: Request, res: Response) => {
+export const allPeopleUndeGroup = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params
     const connection = await ConncetionDB()
@@ -85,9 +85,25 @@ export const allForGroup = async (req: Request, res: Response) => {
     if (promiseResponse.length === 0) {
       throw new Error(`Record with id ${groupId} doesn't exists in groups`)
     }
+    
+    const groups = await getRecursiveGroups(connection, parseInt(groupId))
+    const groupIDs = groups.map(group => group.id)
+    groupIDs.push(parseInt(groupId))
+    const peopleResponse = await new Promise<any[]>((resolve, reject) => {
+      connection.query(
+        'SELECT * FROM people WHERE parent_group_id IN (?)',
+        [groupIDs],
+        (err, resp) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(resp)
+          }
+        }
+      )
+    })
 
-    const hierarchicalData = await getHierarchy({ groupID: parseInt(groupId) })
-    res.status(200).send(hierarchicalData)
+    res.status(200).send(peopleResponse)
   } catch (error) {
     res.status(500).send(error?.message ?? error)
   }

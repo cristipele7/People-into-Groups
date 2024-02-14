@@ -2,14 +2,13 @@ import { Connection } from "mysql"
 import { ConncetionDB } from "./connection"
 import { IGroup, IPeople } from "./models"
 
-export const getHierarchy = async (dataHierarchy?: { personID?: number, groupID?: number }) => {
-  const connection = await ConncetionDB()
-  let hierarchicalGroups: IGroup[] = await new Promise((resolve, reject) => {
+export const getRecursiveGroups = async(connection: Connection, groupID?: number): Promise<IGroup[]> => {
+  return new Promise((resolve, reject) => {
     connection.query(
       `WITH RECURSIVE groups_hierarchy (id, name, date_created, date_updated, parent_group_id) AS (
         SELECT id, name, date_created, date_updated, parent_group_id
         FROM organization.groups
-        WHERE parent_group_id IS NULL
+        WHERE parent_group_id ${groupID ? `= ${groupID}` : 'IS NULL'}
     
         UNION ALL
     
@@ -27,6 +26,11 @@ export const getHierarchy = async (dataHierarchy?: { personID?: number, groupID?
       }
     )
   })
+}
+
+export const getHierarchy = async (dataHierarchy?: { personID?: number }) => {
+  const connection = await ConncetionDB()
+  let hierarchicalGroups: IGroup[] = await getRecursiveGroups(connection)
   let people: IPeople[] = await new Promise((resolve, reject) => {
     connection.query(
       `SELECT id, parent_group_id FROM people`,
@@ -64,28 +68,15 @@ export const getHierarchy = async (dataHierarchy?: { personID?: number, groupID?
     people = []
   }
 
-  let levelGroupID: number
-  if (dataHierarchy?.groupID) {
-    levelGroupID = hierarchicalGroups.find(group => group.id === dataHierarchy.groupID).level
-  }
-
   const all = [...hierarchicalGroups, ...people]
   let hierarchicalData: (IGroup | IPeople)[] = []
   hierarchicalGroups.reverse().map(data => {
     const findParentInHierarchy = all.filter((hd: (IGroup | IPeople)) => hd.parent_group_id === data.id)
     data.children = findParentInHierarchy
-    if (levelGroupID) {
-      if (data.level > levelGroupID && data.parent_group_id === dataHierarchy.groupID) {
-        hierarchicalData = [...hierarchicalData, data]
-      }
-    } else if (!data.parent_group_id) {
+    if (!data.parent_group_id) {
       hierarchicalData = [data]
     }
   })
-  if (levelGroupID) {
-    const findPeople = people.filter((person: (IGroup | IPeople)) => person.parent_group_id === dataHierarchy.groupID)
-    hierarchicalData = [...hierarchicalData, ...findPeople]
-  }
 
   return hierarchicalData
 }
