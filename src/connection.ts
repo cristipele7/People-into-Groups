@@ -1,11 +1,11 @@
-import mysql, { Connection, MysqlError } from 'mysql';
+import mysql, { Connection } from 'mysql';
 
 const params = {
   host: 'localhost',
   port: 3307,
   database: 'organization',
-  user: 'root',
-  password: 'P3l3Cr1s71'
+  user: '',
+  password: ''
 };
 
 export const ConncetionDB = async (): Promise<Connection> => {
