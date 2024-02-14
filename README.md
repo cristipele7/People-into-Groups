@@ -1,15 +1,6 @@
 # People-into-Groups
 The scope of the project is to facilitate the organization of People into Groups.
 
-## Running the app
-
-In the project directory, run:
-
-### `npm install`
-### `npm run start`
-
-The app will run under http://localhost:8080. If you need to change this go to src/app.ts and change HOST and PORT variables.
-
 ## MySQL configuration
 host: 'localhost';
 port: 3307;
@@ -63,3 +54,11 @@ VALUES
 NOW(),
 NOW(),
 null);
+
+## Running the app
+In the project directory, run:
+
+### `npm install`
+### `npm run start`
+
+The app will run under http://localhost:8080. If you need to change this go to src/app.ts and change HOST and PORT variables.
