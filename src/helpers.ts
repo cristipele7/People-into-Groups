@@ -16,7 +16,7 @@ export const getRecursiveGroups = async(connection: Connection, groupID?: number
         FROM organization.groups gr
         INNER JOIN groups_hierarchy gh ON gr.parent_group_id = gh.id
     )
-    SELECT id, parent_group_id FROM groups_hierarchy`,
+    SELECT * FROM groups_hierarchy`,
       (err, resp) => {
         if (err) {
           reject(err)
@@ -33,7 +33,7 @@ export const getHierarchy = async (dataHierarchy?: { personID?: number }) => {
   let hierarchicalGroups: IGroup[] = await getRecursiveGroups(connection)
   let people: IPeople[] = await new Promise((resolve, reject) => {
     connection.query(
-      `SELECT id, parent_group_id FROM people`,
+      `SELECT * FROM people`,
       (err, resp) => {
         if (err) {
           reject(err)

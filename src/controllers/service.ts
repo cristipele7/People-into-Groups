@@ -68,6 +68,7 @@ export const allGroupsAbovePerson = async (req: Request, res: Response) => {
 export const allPeopleUndeGroup = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params
+    const { firstNameFilter, jobFilter } = req.query
     const connection = await ConncetionDB()
     const promiseResponse = await new Promise<any[]>((resolve, reject) => {
       connection.query(
@@ -89,9 +90,17 @@ export const allPeopleUndeGroup = async (req: Request, res: Response) => {
     const groups = await getRecursiveGroups(connection, parseInt(groupId))
     const groupIDs = groups.map(group => group.id)
     groupIDs.push(parseInt(groupId))
+
+    let queryStatement = 'SELECT * FROM people WHERE parent_group_id IN (?)'
+    if (firstNameFilter) {
+      queryStatement += ` AND first_name LIKE '%${firstNameFilter}%'`
+    }
+    if (jobFilter) {
+      queryStatement += ` AND job LIKE '%${jobFilter}%'`
+    }
     const peopleResponse = await new Promise<any[]>((resolve, reject) => {
       connection.query(
-        'SELECT * FROM people WHERE parent_group_id IN (?)',
+        queryStatement,
         [groupIDs],
         (err, resp) => {
           if (err) {
