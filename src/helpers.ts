@@ -86,7 +86,7 @@ export const updateGroupsWhenChangeParentGroup = async (
   olsParentGroupID: number,
   newParentGroupID: number
 ) => {
-  const ids: number[] = [...new Set([olsParentGroupID, newParentGroupID])]
+  const ids: number[] = [olsParentGroupID, newParentGroupID]
   return new Promise((resolve, reject) => {
     connection.query(
       `UPDATE organization.groups SET date_updated=? WHERE id IN (?)`,
